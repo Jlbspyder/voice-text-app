@@ -13,7 +13,7 @@ React, TypeScript, Vite, Node.js, Express, Groq API, Supabase Auth, and Tailwind
 
 ## Links
 
-🔗 Live Site URL:[https://voice-text-app-nu.vercel.app](https://voice-text-app-nu.vercel.app)
+🔗 Live Site URL: [https://voice-text-app-nu.vercel.app](https://voice-text-app-nu.vercel.app)
 
 ## Optional Supabase authentication
 
