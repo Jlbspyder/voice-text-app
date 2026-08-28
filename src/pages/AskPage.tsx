@@ -75,7 +75,7 @@ export function AskPage() {
     <main className="relative min-h-screen overflow-hidden bg-[#f2f0e8] px-5 py-8 sm:px-8 sm:py-12">
       <div className="pointer-events-none absolute -right-24 -top-36 h-96 w-96 rounded-full bg-[#d6dfcf] blur-3xl" /><div className="pointer-events-none absolute -bottom-44 -left-32 h-96 w-96 rounded-full bg-[#e6d8c3] blur-3xl" />
       <div className="relative mx-auto flex min-h-[calc(100vh-4rem)] max-w-3xl flex-col">
-        <header className="flex items-center justify-between gap-4"><a href="/" className="font-display text-lg font-extrabold tracking-tight text-[#1d3828]">JLB<span className="text-[#b35e46]">.</span></a><div className="flex items-center gap-2"><span className="hidden rounded-md border border-[#d4d1c6] bg-white/45 px-3 py-2 text-xs font-semibold text-[#657168] sm:inline">VOICE ASSISTANT</span><AuthControls /></div></header>
+        <header className="flex items-center justify-between gap-4"><a href="/" className="font-display text-lg font-extrabold tracking-tight text-[#1d3828]">JLB<span className="text-[#b35e46]">.</span></a><AuthControls /></header>
         <section className={`flex flex-1 flex-col items-center text-center ${turns.length > 0 ? 'justify-start py-8' : 'justify-center py-12'}`}>
           {turns.length === 0 && <>
           <p className="mb-4 text-xs font-bold uppercase tracking-[.24em] text-[#617468]">Ask out loud</p>
