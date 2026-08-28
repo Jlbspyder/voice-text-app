@@ -11,10 +11,14 @@ The project demonstrates practical integration of browser audio recording, speec
 
 React, TypeScript, Vite, Node.js, Express, Groq API, Supabase Auth, and Tailwind CSS.
 
+## Links
+
+🔗 Live Site URL:[https://voice-text-app-nu.vercel.app](https://voice-text-app-nu.vercel.app)
+
 ## Optional Supabase authentication
 
 1. Create a Supabase project and copy its Project URL and publishable key from the project's Connect dialog.
-2. Copy `.env.example` to `.env` and set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`.
+2. Create `.env` and set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`.
 3. In Supabase Authentication settings, add `http://localhost:5173` and the deployed Vercel URL to the allowed redirect URLs.
 4. Add the same two environment variables to the Vercel project and redeploy.
 
