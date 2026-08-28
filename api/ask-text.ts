@@ -24,8 +24,20 @@ function getGroqError(error: unknown) {
       return { status: 504, message: "Groq took too long to answer. Please try again." };
     if (message.includes("connection") || message.includes("fetch failed"))
       return { status: 502, message: "The Vercel function temporarily could not connect to Groq. Please try again." };
+
+    // Groq's SDK includes the upstream HTTP status and a useful description in
+    // its Error. Keep that information visible while avoiding object dumps
+    // which could contain request headers.
+    const detail = error.message.replace(/\s+/g, " ").trim().slice(0, 300);
+    return {
+      status: status >= 400 && status <= 599 ? status : 502,
+      message: `Groq answer request failed (HTTP ${status}): ${detail}`,
+    };
   }
-  return { status: 502, message: "The answer could not be generated. Please try again." };
+  return {
+    status: status >= 400 && status <= 599 ? status : 502,
+    message: `Groq answer request failed (HTTP ${status}). Please try again.`,
+  };
 }
 
 export default async function handler(
