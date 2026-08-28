@@ -14,6 +14,11 @@ function getGroqError(error: unknown) {
     return { status, message: "Groq rejected the API key configured in Vercel." };
   if (status === 429)
     return { status, message: "The Groq free-tier rate limit has been reached. Wait a moment and try again." };
+  if (status === 413)
+    return {
+      status,
+      message: "The answer service could not process this question. Please try asking it in a different way.",
+    };
   if (status === 404)
     return { status, message: "The configured Groq model is not available to this account." };
   if (status === 400)
@@ -25,18 +30,15 @@ function getGroqError(error: unknown) {
     if (message.includes("connection") || message.includes("fetch failed"))
       return { status: 502, message: "The Vercel function temporarily could not connect to Groq. Please try again." };
 
-    // Groq's SDK includes the upstream HTTP status and a useful description in
-    // its Error. Keep that information visible while avoiding object dumps
-    // which could contain request headers.
-    const detail = error.message.replace(/\s+/g, " ").trim().slice(0, 300);
-    return {
-      status: status >= 400 && status <= 599 ? status : 502,
-      message: `Groq answer request failed (HTTP ${status}): ${detail}`,
-    };
+    if (status >= 500)
+      return {
+        status,
+        message: "The answer service is temporarily unavailable. Please try again in a moment.",
+      };
   }
   return {
     status: status >= 400 && status <= 599 ? status : 502,
-    message: `Groq answer request failed (HTTP ${status}). Please try again.`,
+    message: "The answer could not be generated. Please try again.",
   };
 }
 
@@ -93,9 +95,9 @@ export default async function handler(
           ? error.status
           : undefined;
       if (status !== 413 || !primaryModel.startsWith("groq/compound")) throw error;
-      console.warn("Groq Compound returned 413; retrying with the text fallback model.");
+      console.warn("Groq Compound returned 413; retrying with Compound Mini.");
       result = await groq.chat.completions.create({
-        model: process.env.GROQ_FALLBACK_TEXT_MODEL ?? "openai/gpt-oss-20b",
+        model: "groq/compound-mini",
         messages,
       });
     }

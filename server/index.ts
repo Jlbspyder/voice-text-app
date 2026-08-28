@@ -85,9 +85,9 @@ app.post("/api/ask-text", async (request, response, next) => {
       result = await groq.chat.completions.create({ model: primaryModel, messages });
     } catch (error) {
       if (getApiStatus(error) !== 413 || !primaryModel.startsWith("groq/compound")) throw error;
-      console.warn("Groq Compound returned 413; retrying with the text fallback model.");
+      console.warn("Groq Compound returned 413; retrying with Compound Mini.");
       result = await groq.chat.completions.create({
-        model: process.env.GROQ_FALLBACK_TEXT_MODEL ?? "openai/gpt-oss-20b",
+        model: "groq/compound-mini",
         messages,
       });
     }
