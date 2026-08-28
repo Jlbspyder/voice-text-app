@@ -18,8 +18,13 @@ function getGroqError(error: unknown) {
     return { status, message: "The configured Groq model is not available to this account." };
   if (status === 400)
     return { status, message: "Groq could not process this question." };
-  if (error instanceof Error && error.message.toLowerCase().includes("connection error"))
-    return { status: 502, message: "The Vercel function could not connect to Groq." };
+  if (error instanceof Error) {
+    const message = error.message.toLowerCase();
+    if (message.includes("timeout") || message.includes("timed out"))
+      return { status: 504, message: "Groq took too long to answer. Please try again." };
+    if (message.includes("connection") || message.includes("fetch failed"))
+      return { status: 502, message: "The Vercel function temporarily could not connect to Groq. Please try again." };
+  }
   return { status: 502, message: "The answer could not be generated. Please try again." };
 }
 
@@ -54,7 +59,7 @@ export default async function handler(
   }
 
   try {
-    const groq = new Groq({ apiKey });
+    const groq = new Groq({ apiKey, maxRetries: 4, timeout: 60_000 });
     const result = await groq.chat.completions.create({
       model: process.env.GROQ_TEXT_MODEL ?? "groq/compound",
       messages: [
