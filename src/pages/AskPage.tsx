@@ -1,24 +1,58 @@
-import { useCallback, useState, type SubmitEvent } from 'react'
+import { useCallback, useEffect, useState, type SubmitEvent } from 'react'
 import { Answer } from '../components/Answer/Answer'
 import { LoadingIndicator } from '../components/LoadingIndicator/LoadingIndicator'
 import { Transcript } from '../components/Transcript/Transcript'
 import { VoiceButton } from '../components/VoiceButton/VoiceButton'
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition'
 import { askWithText } from '../services/voice.service'
+import type { ConversationTurn } from '../types/conversation'
+
+const conversationStorageKey = 'voice-text-conversation'
+
+function loadConversation(): ConversationTurn[] {
+  try {
+    const stored = sessionStorage.getItem(conversationStorageKey)
+    if (!stored) return []
+    const value: unknown = JSON.parse(stored)
+    if (!Array.isArray(value)) return []
+    return value.filter((turn): turn is ConversationTurn =>
+      typeof turn === 'object' && turn !== null &&
+      'id' in turn && typeof turn.id === 'string' &&
+      'question' in turn && typeof turn.question === 'string' &&
+      'answer' in turn && typeof turn.answer === 'string',
+    )
+  } catch {
+    return []
+  }
+}
 
 export function AskPage() {
-  const [question, setQuestion] = useState('')
-  const [answer, setAnswer] = useState('')
+  const [turns, setTurns] = useState<ConversationTurn[]>(loadConversation)
   const [typedQuestion, setTypedQuestion] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [requestError, setRequestError] = useState<string | null>(null)
  
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(conversationStorageKey, JSON.stringify(turns))
+    } catch {
+      // The conversation remains available in memory if session storage is unavailable.
+    }
+  }, [turns])
+
   const submitQuestion = useCallback(async (transcript: string) => {
-    setIsLoading(true); setRequestError(null); setQuestion(''); setAnswer('')
-    try { const result = await askWithText(transcript); setQuestion(result.question); setAnswer(result.answer) }
+    setIsLoading(true); setRequestError(null)
+    try {
+      const result = await askWithText(transcript, turns)
+      setTurns((currentTurns) => [...currentTurns, {
+        id: crypto.randomUUID(),
+        question: result.question,
+        answer: result.answer,
+      }])
+    }
     catch (cause) { setRequestError(cause instanceof Error ? cause.message : 'Something went wrong. Please try again.') }
     finally { setIsLoading(false) }
-  }, [])
+  }, [turns])
   const { isRecording, startRecording, stopRecording, error: recorderError } = useSpeechRecognition(submitQuestion)
   
   const beginRecording = useCallback(() => {
@@ -26,14 +60,14 @@ export function AskPage() {
     startRecording()
   }, [startRecording])
   
-  const submitTypedQuestion = useCallback((event: SubmitEvent<HTMLFormElement>) => {
+  const submitTypedQuestion = (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault()
     const questionToSubmit = typedQuestion.trim()
     if (!questionToSubmit || isLoading || isRecording) return
+    setTypedQuestion('')
     void submitQuestion(questionToSubmit)
-  }, [isLoading, isRecording, submitQuestion, typedQuestion])
+  }
   
-  const hasResult = Boolean(question && answer)
   const error = recorderError ?? requestError
 
   return (
@@ -66,9 +100,10 @@ export function AskPage() {
             </div>
           </form>
           <div className="mt-9 w-full rounded-4xl border border-white/80 bg-white/65 p-6 text-left shadow-[0_24px_70px_rgba(57,67,59,.10)] backdrop-blur-md sm:p-9">
-            {isLoading && <LoadingIndicator />}
-            {!isLoading && hasResult && <><Transcript question={question} /><Answer answer={answer} /></>}
-            {!isLoading && !hasResult && !error && <p className="py-7 text-center text-sm leading-6 text-[#7b837e]">Your transcribed question and answer will appear here.</p>}
+            {turns.length > 0 && <div className="mb-7 flex items-center justify-between gap-4"><h2 className="font-display text-lg font-bold text-[#18271e]">Conversation</h2><button type="button" onClick={() => setTurns([])} disabled={isLoading || isRecording} className="text-xs font-bold text-[#8b3e31] underline decoration-[#d8a99e] underline-offset-4 disabled:cursor-not-allowed disabled:opacity-50">Clear history</button></div>}
+            {turns.map((turn, index) => <article key={turn.id} className={index > 0 ? 'mt-9 border-t border-[#d8d5c9] pt-9' : ''}><Transcript question={turn.question} headingId={`question-${turn.id}`} /><Answer answer={turn.answer} headingId={`answer-${turn.id}`} /></article>)}
+            {isLoading && <div className={turns.length ? 'mt-9 border-t border-[#d8d5c9] pt-9' : ''}><LoadingIndicator /></div>}
+            {!isLoading && turns.length === 0 && !error && <p className="py-7 text-center text-sm leading-6 text-[#7b837e]">Your questions and answers will appear here.</p>}
             {error && !isLoading && <div role="alert" className="rounded-2xl border border-[#e8b9ad] bg-[#fff2ed] px-5 py-4 text-sm leading-6 text-[#8b3e31]">{error}</div>}
           </div>
         </section>

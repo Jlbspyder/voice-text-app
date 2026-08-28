@@ -1,6 +1,24 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Groq from "groq-sdk";
 
+interface HistoryTurn {
+  question: string;
+  answer: string;
+}
+
+function getHistory(value: unknown): HistoryTurn[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((turn): turn is HistoryTurn =>
+      typeof turn === "object" && turn !== null &&
+      "question" in turn && typeof turn.question === "string" &&
+      turn.question.length <= 4_000 &&
+      "answer" in turn && typeof turn.answer === "string" &&
+      turn.answer.length <= 4_000,
+    )
+    .slice(-4);
+}
+
 function getGroqError(error: unknown) {
   const status =
     typeof error === "object" &&
@@ -56,6 +74,7 @@ export default async function handler(
     typeof request.body?.question === "string"
       ? request.body.question.trim()
       : "";
+  const history = getHistory(request.body?.history);
 
   if (!question) {
     response.status(400).json({ error: "Please include a transcribed question." });
@@ -74,12 +93,17 @@ export default async function handler(
 
   try {
     const groq = new Groq({ apiKey, maxRetries: 4, timeout: 60_000 });
+    const contextMessages = history.flatMap((turn) => [
+      { role: "user" as const, content: turn.question },
+      { role: "assistant" as const, content: turn.answer },
+    ]);
     const messages = [
         {
           role: "system" as const,
           content:
-            "Answer the user's question clearly and accurately. Be concise unless detail is needed. Do not ask a follow-up question.",
+            "Answer the user's question clearly and accurately. Use the previous messages as context for follow-up questions. Be concise unless detail is needed. Do not ask a follow-up question.",
         },
+        ...contextMessages,
         { role: "user" as const, content: question },
       ];
     const primaryModel = process.env.GROQ_TEXT_MODEL ?? "groq/compound";

@@ -1,10 +1,10 @@
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
-export function Answer({ answer }: { answer: string }) {
+export function Answer({ answer, headingId = 'answer-heading' }: { answer: string; headingId?: string }) {
   return (
-    <section className="pt-7" aria-labelledby="answer-heading">
-      <p id="answer-heading" className="mb-3 text-xs font-bold uppercase tracking-[.2em] text-[#6c776f]">Answer</p>
+    <section className="pt-7" aria-labelledby={headingId}>
+      <p id={headingId} className="mb-3 text-xs font-bold uppercase tracking-[.2em] text-[#6c776f]">Answer</p>
       <div className="text-base leading-8 text-[#3b4940] sm:text-lg">
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
