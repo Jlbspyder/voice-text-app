@@ -1,6 +1,28 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Groq from "groq-sdk";
 
+function getGroqError(error: unknown) {
+  const status =
+    typeof error === "object" &&
+    error !== null &&
+    "status" in error &&
+    typeof error.status === "number"
+      ? error.status
+      : 502;
+
+  if (status === 401)
+    return { status, message: "Groq rejected the API key configured in Vercel." };
+  if (status === 429)
+    return { status, message: "The Groq free-tier rate limit has been reached. Wait a moment and try again." };
+  if (status === 404)
+    return { status, message: "The configured Groq model is not available to this account." };
+  if (status === 400)
+    return { status, message: "Groq could not process this question." };
+  if (error instanceof Error && error.message.toLowerCase().includes("connection error"))
+    return { status: 502, message: "The Vercel function could not connect to Groq." };
+  return { status: 502, message: "The answer could not be generated. Please try again." };
+}
+
 export default async function handler(
   request: VercelRequest,
   response: VercelResponse,
@@ -51,16 +73,8 @@ export default async function handler(
     }
     response.status(200).json({ question, answer });
   } catch (error) {
-    const status =
-      typeof error === "object" &&
-      error !== null &&
-      "status" in error &&
-      typeof error.status === "number"
-        ? error.status
-        : 502;
+    const groqError = getGroqError(error);
     console.error("Groq answer request failed", error);
-    response.status(status >= 400 && status < 500 ? status : 502).json({
-      error: "The answer could not be generated. Please try again.",
-    });
+    response.status(groqError.status).json({ error: groqError.message });
   }
 }
