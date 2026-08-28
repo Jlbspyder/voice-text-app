@@ -71,17 +71,26 @@ app.post("/api/ask-text", async (request, response, next) => {
 
   try {
     const groq = new Groq({ apiKey });
-    const result = await groq.chat.completions.create({
-      model: process.env.GROQ_TEXT_MODEL ?? "groq/compound",
-      messages: [
+    const messages = [
         {
-          role: "system",
+          role: "system" as const,
           content:
             "Answer the user's question clearly and accurately. Be concise unless detail is needed. Do not ask a follow-up question.",
         },
-        { role: "user", content: question },
-      ],
-    });
+        { role: "user" as const, content: question },
+      ];
+    const primaryModel = process.env.GROQ_TEXT_MODEL ?? "groq/compound";
+    let result;
+    try {
+      result = await groq.chat.completions.create({ model: primaryModel, messages });
+    } catch (error) {
+      if (getApiStatus(error) !== 413 || !primaryModel.startsWith("groq/compound")) throw error;
+      console.warn("Groq Compound returned 413; retrying with the text fallback model.");
+      result = await groq.chat.completions.create({
+        model: process.env.GROQ_FALLBACK_TEXT_MODEL ?? "openai/gpt-oss-20b",
+        messages,
+      });
+    }
     const answer = result.choices[0]?.message.content?.trim();
     if (!answer) {
       response.status(502).json({ error: "Groq returned an empty answer. Please try again." });
