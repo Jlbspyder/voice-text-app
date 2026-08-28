@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type SubmitEvent } from 'react'
 import { Answer } from '../components/Answer/Answer'
+import { AuthControls } from '../components/Auth/AuthControls'
 import { LoadingIndicator } from '../components/LoadingIndicator/LoadingIndicator'
 import { Transcript } from '../components/Transcript/Transcript'
 import { VoiceButton } from '../components/VoiceButton/VoiceButton'
@@ -74,20 +75,35 @@ export function AskPage() {
     <main className="relative min-h-screen overflow-hidden bg-[#f2f0e8] px-5 py-8 sm:px-8 sm:py-12">
       <div className="pointer-events-none absolute -right-24 -top-36 h-96 w-96 rounded-full bg-[#d6dfcf] blur-3xl" /><div className="pointer-events-none absolute -bottom-44 -left-32 h-96 w-96 rounded-full bg-[#e6d8c3] blur-3xl" />
       <div className="relative mx-auto flex min-h-[calc(100vh-4rem)] max-w-3xl flex-col">
-        <header className="flex items-center justify-between"><a href="/" className="font-display text-lg font-extrabold tracking-tight text-[#1d3828]">JLB<span className="text-[#b35e46]">.</span></a><span className="rounded-full border border-[#d4d1c6] bg-white/45 px-3 py-1 text-xs font-semibold text-[#657168]">VOICE ASSISTANT</span></header>
-        <section className="flex flex-1 flex-col items-center justify-center py-12 text-center">
+        <header className="flex items-center justify-between gap-4"><a href="/" className="font-display text-lg font-extrabold tracking-tight text-[#1d3828]">JLB<span className="text-[#b35e46]">.</span></a><div className="flex items-center gap-2"><span className="hidden rounded-md border border-[#d4d1c6] bg-white/45 px-3 py-2 text-xs font-semibold text-[#657168] sm:inline">VOICE ASSISTANT</span><AuthControls /></div></header>
+        <section className={`flex flex-1 flex-col items-center text-center ${turns.length > 0 ? 'justify-start py-8' : 'justify-center py-12'}`}>
+          {turns.length === 0 && <>
           <p className="mb-4 text-xs font-bold uppercase tracking-[.24em] text-[#617468]">Ask out loud</p>
           <h1 className="font-display max-w-2xl text-4xl font-bold leading-[1.08] tracking-[-.04em] text-[#15251b] sm:text-6xl">Your curiosity,<br /><span className="italic text-[#467159]">answered.</span></h1>
-          <p className="mt-5 max-w-md leading-7 text-[#667169]">Tap the microphone, ask anything, then tap again when you’re finished.</p>
+          <p className="mt-5 max-w-md leading-7 text-[#667169]">Tap the microphone and ask anything. Your question sends automatically when you stop speaking.</p>
           <div className="mt-10"><VoiceButton isRecording={isRecording} isLoading={isLoading} onStart={beginRecording} onStop={stopRecording} /></div>
-          <p className="mt-5 min-h-6 text-sm font-medium text-[#526159]">{isRecording ? 'Recording — tap to finish' : isLoading ? 'Thinking…' : 'Tap to speak'}</p>
-          <div className="my-7 flex w-full max-w-xl items-center gap-4 text-xs font-bold uppercase tracking-[.18em] text-[#8a918b] before:h-px before:flex-1 before:bg-[#d5d3ca] after:h-px after:flex-1 after:bg-[#d5d3ca]">or type</div>
+          <p className="mt-5 min-h-6 text-sm font-medium text-[#526159]">{isRecording ? 'Listening — pause when finished' : isLoading ? 'Thinking…' : 'Tap to speak'}</p>
+          </>}
+          <div className={`${turns.length > 0 ? 'mt-0' : 'mt-9'} w-full rounded-4xl border border-white/80 bg-white/65 p-6 text-left shadow-[0_24px_70px_rgba(57,67,59,.10)] backdrop-blur-md sm:p-9`}>
+            {turns.length > 0 && <div className="mb-7 flex items-center justify-between gap-4"><h2 className="font-display text-lg font-bold text-[#18271e]">Conversation</h2><button type="button" onClick={() => setTurns([])} disabled={isLoading || isRecording} className="text-xs font-bold text-[#8b3e31] underline decoration-[#d8a99e] underline-offset-4 disabled:cursor-not-allowed disabled:opacity-50">Clear history</button></div>}
+            {turns.map((turn, index) => <article key={turn.id} className={index > 0 ? 'mt-9 border-t border-[#d8d5c9] pt-9' : ''}><Transcript question={turn.question} headingId={`question-${turn.id}`} /><Answer answer={turn.answer} headingId={`answer-${turn.id}`} /></article>)}
+            {isLoading && <div className={turns.length ? 'mt-9 border-t border-[#d8d5c9] pt-9' : ''}><LoadingIndicator /></div>}
+            {!isLoading && turns.length === 0 && !error && <p className="py-7 text-center text-sm leading-6 text-[#7b837e]">Your questions and answers will appear here.</p>}
+            {error && !isLoading && <div role="alert" className="rounded-2xl border border-[#e8b9ad] bg-[#fff2ed] px-5 py-4 text-sm leading-6 text-[#8b3e31]">{error}</div>}
+          </div>
+          <div className="my-7 flex w-full max-w-xl items-center gap-4 text-xs font-bold uppercase tracking-[.18em] text-[#8a918b] before:h-px before:flex-1 before:bg-[#d5d3ca] after:h-px after:flex-1 after:bg-[#d5d3ca]">{turns.length > 0 ? 'Ask a follow-up' : 'or type'}</div>
           <form className="w-full max-w-xl" onSubmit={submitTypedQuestion}>
             <label htmlFor="typed-question" className="sr-only">Type your question</label>
             <textarea
               id="typed-question"
               value={typedQuestion}
               onChange={(event) => setTypedQuestion(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
+                  event.preventDefault()
+                  event.currentTarget.form?.requestSubmit()
+                }
+              }}
               maxLength={4000}
               rows={3}
               disabled={isLoading || isRecording}
@@ -96,18 +112,11 @@ export function AskPage() {
             />
             <div className="mt-3 flex items-center justify-between gap-4">
               <span className="text-xs text-[#81877f]">{typedQuestion.length}/4000</span>
-              <button type="submit" disabled={!typedQuestion.trim() || isLoading || isRecording} className="rounded-full bg-[#24583c] px-6 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#1b4931] focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-[#91b89e] disabled:cursor-not-allowed disabled:opacity-50">Ask question</button>
+              <button type="submit" disabled={!typedQuestion.trim() || isLoading || isRecording} className="rounded-full bg-[#24583c] px-6 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#1b4931] focus-visible:outline-4 focus-visible:outline-offset-2 cursor-pointer focus-visible:outline-[#91b89e] disabled:cursor-not-allowed disabled:opacity-50">Ask question</button>
             </div>
           </form>
-          <div className="mt-9 w-full rounded-4xl border border-white/80 bg-white/65 p-6 text-left shadow-[0_24px_70px_rgba(57,67,59,.10)] backdrop-blur-md sm:p-9">
-            {turns.length > 0 && <div className="mb-7 flex items-center justify-between gap-4"><h2 className="font-display text-lg font-bold text-[#18271e]">Conversation</h2><button type="button" onClick={() => setTurns([])} disabled={isLoading || isRecording} className="text-xs font-bold text-[#8b3e31] underline decoration-[#d8a99e] underline-offset-4 disabled:cursor-not-allowed disabled:opacity-50">Clear history</button></div>}
-            {turns.map((turn, index) => <article key={turn.id} className={index > 0 ? 'mt-9 border-t border-[#d8d5c9] pt-9' : ''}><Transcript question={turn.question} headingId={`question-${turn.id}`} /><Answer answer={turn.answer} headingId={`answer-${turn.id}`} /></article>)}
-            {isLoading && <div className={turns.length ? 'mt-9 border-t border-[#d8d5c9] pt-9' : ''}><LoadingIndicator /></div>}
-            {!isLoading && turns.length === 0 && !error && <p className="py-7 text-center text-sm leading-6 text-[#7b837e]">Your questions and answers will appear here.</p>}
-            {error && !isLoading && <div role="alert" className="rounded-2xl border border-[#e8b9ad] bg-[#fff2ed] px-5 py-4 text-sm leading-6 text-[#8b3e31]">{error}</div>}
-          </div>
         </section>
-        <footer className="text-center text-xs text-[#81877f]">Only your question is sent to the answer service.</footer>
+        <footer className="text-center text-xs text-[#81877f]">Get to know everything about everything.</footer>
       </div>
     </main>
   )

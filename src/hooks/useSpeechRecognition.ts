@@ -41,11 +41,20 @@ export function useSpeechRecognition(onComplete: (transcript: string) => void) {
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null)
   const transcriptRef = useRef('')
   const activeRef = useRef(false)
+  const silenceTimerRef = useRef<number | null>(null)
+
+  const clearSilenceTimer = useCallback(() => {
+    if (silenceTimerRef.current !== null) {
+      window.clearTimeout(silenceTimerRef.current)
+      silenceTimerRef.current = null
+    }
+  }, [])
 
   useEffect(() => () => {
+    clearSilenceTimer()
     activeRef.current = false
     recognitionRef.current?.abort()
-  }, [])
+  }, [clearSilenceTimer])
 
   const startRecording = useCallback(() => {
     setError(null)
@@ -69,9 +78,17 @@ export function useSpeechRecognition(onComplete: (transcript: string) => void) {
         transcript += event.results[index][0].transcript
       }
       transcriptRef.current = transcript.trim()
+      clearSilenceTimer()
+      if (transcriptRef.current) {
+        silenceTimerRef.current = window.setTimeout(() => {
+          silenceTimerRef.current = null
+          recognitionRef.current?.stop()
+        }, 1500)
+      }
     }
 
     recognition.onerror = (event) => {
+      clearSilenceTimer()
       activeRef.current = false
       setIsRecording(false)
       setError(
@@ -84,6 +101,7 @@ export function useSpeechRecognition(onComplete: (transcript: string) => void) {
     }
 
     recognition.onend = () => {
+      clearSilenceTimer()
       const shouldSubmit = activeRef.current
       activeRef.current = false
       recognitionRef.current = null
@@ -100,11 +118,12 @@ export function useSpeechRecognition(onComplete: (transcript: string) => void) {
       activeRef.current = false
       setError('Speech recognition could not be started.')
     }
-  }, [onComplete])
+  }, [clearSilenceTimer, onComplete])
 
   const stopRecording = useCallback(() => {
+    clearSilenceTimer()
     recognitionRef.current?.stop()
-  }, [])
+  }, [clearSilenceTimer])
 
   return { isRecording, startRecording, stopRecording, error }
 }
