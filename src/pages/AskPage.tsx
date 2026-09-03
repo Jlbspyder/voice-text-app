@@ -32,6 +32,12 @@ export function AskPage() {
   const [typedQuestion, setTypedQuestion] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [requestError, setRequestError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!requestError) return
+    const timeoutId = setTimeout(() => setRequestError(null), 3000)
+    return () => clearTimeout(timeoutId)
+  }, [requestError])
  
   useEffect(() => {
     try {
@@ -84,7 +90,7 @@ export function AskPage() {
           <div className="mt-10"><VoiceButton isRecording={isRecording} isLoading={isLoading} onStart={beginRecording} onStop={stopRecording} /></div>
           <p className="mt-5 min-h-6 text-sm font-medium text-[#526159]">{isRecording ? 'Listening — pause when finished' : isLoading ? 'Thinking…' : 'Tap to speak'}</p>
           </>}
-          <div className={`${turns.length > 0 ? 'mt-0' : 'mt-9'} w-full rounded-4xl border border-white/80 bg-white/65 p-6 text-left shadow-[0_24px_70px_rgba(57,67,59,.10)] backdrop-blur-md sm:p-9`}>
+          <div className={`${turns.length > 0 ? 'mt-0' : 'mt-9'} w-full rounded-xl border border-white/80 bg-white/65 p-6 text-left shadow-[0_24px_70px_rgba(57,67,59,.10)] backdrop-blur-md sm:p-9`}>
             {turns.length > 0 && <div className="mb-7 flex items-center justify-between gap-4"><h2 className="font-display text-lg font-bold text-[#18271e]">Conversation</h2><button type="button" onClick={() => setTurns([])} disabled={isLoading || isRecording} className="text-xs font-bold text-[#8b3e31] underline decoration-[#d8a99e] underline-offset-4 disabled:cursor-not-allowed disabled:opacity-50">Clear history</button></div>}
             {turns.map((turn, index) => <article key={turn.id} className={index > 0 ? 'mt-9 border-t border-[#d8d5c9] pt-9' : ''}><Transcript question={turn.question} headingId={`question-${turn.id}`} /><Answer answer={turn.answer} headingId={`answer-${turn.id}`} /></article>)}
             {isLoading && <div className={turns.length ? 'mt-9 border-t border-[#d8d5c9] pt-9' : ''}><LoadingIndicator /></div>}
@@ -108,11 +114,11 @@ export function AskPage() {
               rows={3}
               disabled={isLoading || isRecording}
               placeholder="Type your question here..."
-              className="w-full resize-none rounded-3xl border border-[#d4d1c6] bg-white/70 px-5 py-4 text-left text-[#18271e] shadow-sm outline-none transition placeholder:text-[#929890] focus:border-[#6f927c] focus:ring-4 focus:ring-[#b9d0c0]/40 disabled:cursor-not-allowed disabled:opacity-60"
+              className="w-full resize-none rounded-xl border border-[#d4d1c6] bg-white/70 px-5 py-4 text-left text-[#18271e] shadow-sm outline-none transition placeholder:text-[#929890] focus:border-[#6f927c] focus:ring-4 focus:ring-[#b9d0c0]/40 disabled:cursor-not-allowed disabled:opacity-60"
             />
             <div className="mt-3 flex items-center justify-between gap-4">
               <span className="text-xs text-[#81877f]">{typedQuestion.length}/4000</span>
-              <button type="submit" disabled={!typedQuestion.trim() || isLoading || isRecording} className="rounded-full bg-[#24583c] px-6 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#1b4931] focus-visible:outline-4 focus-visible:outline-offset-2 cursor-pointer focus-visible:outline-[#91b89e] disabled:cursor-not-allowed disabled:opacity-50">Ask question</button>
+              <button type="submit" disabled={!typedQuestion.trim() || isLoading || isRecording} className="rounded-md bg-[#24583c] px-6 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#1b4931] focus-visible:outline-4 focus-visible:outline-offset-2 cursor-pointer focus-visible:outline-[#91b89e] disabled:cursor-not-allowed disabled:opacity-50">Ask question</button>
             </div>
           </form>
         </section>

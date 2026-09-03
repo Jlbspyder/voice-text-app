@@ -17,6 +17,12 @@ export function AuthControls() {
   const [message, setMessage] = useState<string | null>(null)
 
   useEffect(() => {
+    if (!message) return
+    const timeoutId = setTimeout(() => setMessage(null), 3000)
+    return () => clearTimeout(timeoutId)
+  }, [message])
+
+  useEffect(() => {
     if (!supabase) return
 
     void supabase.auth.getSession().then(({ data }) => setSession(data.session))

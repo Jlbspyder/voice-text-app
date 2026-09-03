@@ -43,6 +43,12 @@ export function useSpeechRecognition(onComplete: (transcript: string) => void) {
   const activeRef = useRef(false)
   const silenceTimerRef = useRef<number | null>(null)
 
+  useEffect(() => {
+    if (!error) return
+    const timeoutId = setTimeout(() => setError(null), 3000)
+    return () => clearTimeout(timeoutId)
+  }, [error])
+
   const clearSilenceTimer = useCallback(() => {
     if (silenceTimerRef.current !== null) {
       window.clearTimeout(silenceTimerRef.current)
